@@ -10,15 +10,6 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
-    chunkSizeWarningLimit: 1000,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom', 'framer-motion'],
-          charts: ['recharts'],
-          icons: ['lucide-react']
-        }
-      }
-    }
+    chunkSizeWarningLimit: 1500
   }
 })
