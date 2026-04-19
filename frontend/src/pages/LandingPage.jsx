@@ -1,0 +1,439 @@
+import React, { useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
+import { motion, useScroll, useTransform, useSpring, useInView } from 'framer-motion';
+import { useTheme } from '../context/ThemeContext';
+import {
+  Activity, ArrowRight, BarChart3, Brain, FileSearch,
+  Moon, Shield, Sun, TrendingUp, Upload, Users, Zap, Check, Menu, X
+} from 'lucide-react';
+import {
+  spring, fadeUp, scaleIn, stagger, cardHover, buttonPress,
+  scrollReveal, scrollViewport, appleEase, slideInLeft
+} from '../lib/motion';
+
+export default function LandingPage() {
+  const { toggle, isDark } = useTheme();
+  return (
+    <div className="min-h-screen bg-(--color-bg) text-(--color-text) overflow-x-hidden">
+      <Nav toggle={toggle} isDark={isDark} />
+      <Hero />
+      <Features />
+      <HowItWorks />
+      <Pricing />
+      <CTA />
+      <Footer />
+      {/* Continuous ambient background */}
+      <AmbientBackground />
+    </div>
+  );
+}
+
+/* ─── Ambient Background ─── */
+function AmbientBackground() {
+  return (
+    <div className="fixed inset-0 pointer-events-none -z-50 overflow-hidden">
+      <motion.div
+        className="absolute top-1/4 left-1/3 w-[600px] h-[600px] rounded-full bg-[radial-gradient(ellipse,var(--color-accent)_0%,transparent_70%)]"
+        animate={{
+          x: [0, 30, -20, 0],
+          y: [0, -20, 15, 0],
+          scale: [1, 1.05, 0.97, 1],
+        }}
+        transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+        style={{ opacity: 0.03 }}
+      />
+      <motion.div
+        className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full bg-[radial-gradient(ellipse,var(--color-accent)_0%,transparent_70%)]"
+        animate={{
+          x: [0, -25, 20, 0],
+          y: [0, 15, -25, 0],
+          scale: [1, 0.95, 1.03, 1],
+        }}
+        transition={{ duration: 25, repeat: Infinity, ease: 'linear', delay: 5 }}
+        style={{ opacity: 0.025 }}
+      />
+    </div>
+  );
+}
+
+/* ─── Nav ─── */
+function Nav({ toggle, isDark }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  return (
+    <motion.nav
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ ...spring.gentle }}
+      className="fixed top-0 inset-x-0 z-50 border-b border-(--color-border) bg-(--color-bg)/80 backdrop-blur-xl"
+    >
+      <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2 font-semibold text-lg">
+          <motion.div {...buttonPress}>
+            <Activity size={22} className="text-(--color-accent)" />
+          </motion.div>
+          <span>AutoML Studio</span>
+        </Link>
+        <div className="hidden md:flex items-center gap-8 text-sm text-(--color-text-secondary)">
+          {['Features', 'How it works', 'Pricing'].map(item => (
+            <motion.a key={item} href={`#${item.toLowerCase().replace(/\s+/g, '-')}`}
+              className="hover:text-(--color-text) transition-colors"
+              whileHover={{ y: -1 }} transition={{ ...spring.micro }}
+            >{item}</motion.a>
+          ))}
+        </div>
+        <div className="flex items-center gap-3">
+          <motion.button {...buttonPress} onClick={toggle} className="p-2 rounded-lg hover:bg-(--color-bg-hover) transition-colors cursor-pointer" aria-label="Toggle theme">
+            {isDark ? <Sun size={18} /> : <Moon size={18} />}
+          </motion.button>
+          <Link to="/login" className="hidden sm:inline-flex text-sm text-(--color-text-secondary) hover:text-(--color-text) transition-colors px-3 py-1.5">Sign in</Link>
+          <motion.div {...buttonPress}>
+            <Link to="/signup" className="hidden sm:inline-flex text-sm font-medium bg-(--color-accent) text-white px-4 py-2 rounded-full hover:opacity-90 transition-opacity">
+              Get Started
+            </Link>
+          </motion.div>
+          <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden p-2 cursor-pointer">
+            {menuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
+      </div>
+      {menuOpen && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ ...spring.gentle }}
+          className="md:hidden border-t border-(--color-border) bg-(--color-bg) px-6 py-4 flex flex-col gap-3 text-sm"
+        >
+          <a href="#features" className="py-2 text-(--color-text-secondary)">Features</a>
+          <a href="#how-it-works" className="py-2 text-(--color-text-secondary)">How it works</a>
+          <a href="#pricing" className="py-2 text-(--color-text-secondary)">Pricing</a>
+          <Link to="/login" className="py-2">Sign in</Link>
+          <Link to="/signup" className="bg-(--color-accent) text-white text-center py-2.5 rounded-full font-medium">Get Started</Link>
+        </motion.div>
+      )}
+    </motion.nav>
+  );
+}
+
+/* ─── Hero (Scroll-driven parallax) ─── */
+function Hero() {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] });
+
+  // Parallax layers — different speeds for depth
+  const headlineY = useSpring(useTransform(scrollYProgress, [0, 1], [0, -60]), { ...spring.heavy });
+  const subtitleY = useSpring(useTransform(scrollYProgress, [0, 1], [0, -40]), { ...spring.heavy });
+  const cardY = useSpring(useTransform(scrollYProgress, [0, 1], [0, -20]), { ...spring.heavy });
+  const bgScale = useSpring(useTransform(scrollYProgress, [0, 1], [1, 1.15]), { ...spring.heavy });
+  const bgOpacity = useTransform(scrollYProgress, [0, 0.8], [0.07, 0]);
+
+  return (
+    <section ref={ref} className="relative pt-32 pb-24 px-6 overflow-hidden">
+      {/* Parallax gradient background */}
+      <motion.div className="absolute inset-0 -z-10" style={{ scale: bgScale }}>
+        <motion.div
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full bg-[radial-gradient(ellipse,var(--color-accent)_0%,transparent_70%)]"
+          style={{ opacity: bgOpacity }}
+        />
+      </motion.div>
+
+      <motion.div variants={stagger(0.08)} initial="hidden" animate="show" className="max-w-3xl mx-auto text-center">
+        {/* Badge — bouncy spring entrance */}
+        <motion.div
+          variants={scaleIn}
+          className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-(--color-border) bg-(--color-bg-card) text-xs font-medium text-(--color-text-secondary) mb-6"
+        >
+          <Zap size={12} className="text-(--color-accent)" /> AI-Powered Analytics Platform
+        </motion.div>
+
+        {/* Headline — moves fastest on scroll (closest to viewer) */}
+        <motion.h1
+          variants={fadeUp}
+          style={{ y: headlineY }}
+          className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-[1.1] mb-6"
+        >
+          Turn your customer data into{' '}
+          <span className="text-gradient">retention intelligence</span>
+        </motion.h1>
+
+        {/* Subtitle — slightly slower parallax */}
+        <motion.p
+          variants={fadeUp}
+          style={{ y: subtitleY }}
+          className="text-lg text-(--color-text-secondary) max-w-xl mx-auto mb-10 leading-relaxed"
+        >
+          Upload a CSV. Get churn predictions, anomaly detection, and demand forecasting — all powered by ML models that work out of the box.
+        </motion.p>
+
+        {/* CTA Buttons */}
+        <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <motion.div {...buttonPress}>
+            <Link to="/signup" className="inline-flex items-center gap-2 bg-(--color-accent) text-white font-medium px-6 py-3 rounded-full text-sm hover:opacity-90 transition-opacity">
+              Start Free <ArrowRight size={16} />
+            </Link>
+          </motion.div>
+          <motion.div {...buttonPress}>
+            <a href="#how-it-works" className="inline-flex items-center gap-2 text-sm text-(--color-text-secondary) font-medium px-6 py-3 rounded-full border border-(--color-border) hover:bg-(--color-bg-card) transition-colors">
+              See how it works
+            </a>
+          </motion.div>
+        </motion.div>
+      </motion.div>
+
+      {/* Floating preview card — slowest parallax (deepest layer) */}
+      <motion.div
+        initial={{ opacity: 0, y: 60, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ ...spring.heavy, delay: 0.3 }}
+        style={{ y: cardY }}
+        className="max-w-4xl mx-auto mt-16 relative"
+      >
+        <motion.div
+          {...cardHover}
+          className="rounded-2xl border border-(--color-border) bg-(--color-bg-card) shadow-lg p-6 sm:p-8"
+        >
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            {[
+              { label: 'Churn Rate', value: '12.4%', change: '-2.1%', color: 'text-green-500' },
+              { label: 'Retention Score', value: '87.6', change: '+4.3', color: 'text-green-500' },
+              { label: 'Fraud Alerts', value: '3', change: 'New', color: 'text-amber-500' },
+            ].map((m, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ...spring.gentle, delay: 0.5 + i * 0.08 }}
+                className="rounded-xl bg-(--color-bg) border border-(--color-border) p-4"
+              >
+                <div className="text-xs text-(--color-text-muted) mb-1">{m.label}</div>
+                <div className="text-2xl font-bold">{m.value}</div>
+                <div className={`text-xs font-medium mt-1 ${m.color}`}>{m.change}</div>
+              </motion.div>
+            ))}
+          </div>
+          {/* Animated chart bars — spring growth */}
+          <div className="h-32 rounded-xl bg-(--color-bg) border border-(--color-border) flex items-center justify-center">
+            <div className="flex items-end gap-1.5 h-20">
+              {[40, 65, 45, 80, 55, 70, 90, 60, 75, 85, 50, 95].map((h, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: `${h}%`, opacity: 0.7 }}
+                  transition={{ ...spring.bouncy, delay: 0.7 + i * 0.04 }}
+                  className="w-5 rounded-t-md bg-(--color-accent)"
+                />
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    </section>
+  );
+}
+
+/* ─── Scroll Section Wrapper ─── */
+function ScrollSection({ children, className = '' }) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: '-80px' });
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 40, scale: 0.97 }}
+      animate={isInView ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 40, scale: 0.97 }}
+      transition={{ ...spring.heavy }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/* ─── Features ─── */
+function Features() {
+  const features = [
+    { icon: <Brain size={20} />, title: 'Churn Prediction', desc: 'Random Forest models predict at-risk customers before they leave.' },
+    { icon: <Shield size={20} />, title: 'Anomaly Detection', desc: 'Isolation Forest flags fraudulent patterns and outliers automatically.' },
+    { icon: <TrendingUp size={20} />, title: 'Demand Forecasting', desc: '30-day time series projections with trend analysis.' },
+    { icon: <FileSearch size={20} />, title: 'Data Profiling', desc: 'Instant quality scores, missing value analysis, and distributions.' },
+    { icon: <BarChart3 size={20} />, title: 'Correlation Analysis', desc: 'Discover hidden relationships between your variables.' },
+    { icon: <Users size={20} />, title: 'Multi-Tenant', desc: 'Organizations, role-based access, and usage tracking built in.' },
+  ];
+
+  return (
+    <section id="features" className="py-24 px-6 border-t border-(--color-border)">
+      <div className="max-w-5xl mx-auto">
+        <ScrollSection>
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold mb-3">Everything you need to retain customers</h2>
+            <p className="text-(--color-text-secondary) max-w-lg mx-auto">Six ML pipelines run on every upload. No configuration needed.</p>
+          </div>
+        </ScrollSection>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {features.map((f, i) => (
+            <ScrollSection key={i}>
+              <motion.div
+                {...cardHover}
+                transition={{ ...spring.gentle, delay: i * 0.04 }}
+                className="group p-6 rounded-2xl border border-(--color-border) bg-(--color-bg-card) hover:shadow-md transition-shadow h-full"
+              >
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  whileInView={{ scale: 1, opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ ...spring.bouncy, delay: i * 0.05 }}
+                  className="w-10 h-10 rounded-xl bg-(--color-accent)/10 flex items-center justify-center mb-4 text-(--color-accent)"
+                >
+                  {f.icon}
+                </motion.div>
+                <h3 className="font-semibold mb-1.5">{f.title}</h3>
+                <p className="text-sm text-(--color-text-secondary) leading-relaxed">{f.desc}</p>
+              </motion.div>
+            </ScrollSection>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── How It Works ─── */
+function HowItWorks() {
+  const steps = [
+    { num: '01', title: 'Upload your data', desc: 'Drag and drop a CSV file. We support any e-commerce or transactional dataset.' },
+    { num: '02', title: 'AI analyzes everything', desc: 'Six ML models run simultaneously — churn, anomaly, forecast, profiling, correlation, and distribution.' },
+    { num: '03', title: 'Get actionable insights', desc: 'Interactive dashboards reveal at-risk customers, fraud patterns, and growth opportunities.' },
+  ];
+
+  return (
+    <section id="how-it-works" className="py-24 px-6 border-t border-(--color-border)">
+      <div className="max-w-4xl mx-auto">
+        <ScrollSection>
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold mb-3">How it works</h2>
+            <p className="text-(--color-text-secondary)">From raw CSV to retention intelligence in under 30 seconds.</p>
+          </div>
+        </ScrollSection>
+        <div className="space-y-6">
+          {steps.map((s, i) => (
+            <ScrollSection key={i}>
+              <motion.div
+                {...cardHover}
+                className="flex gap-6 items-start p-6 rounded-2xl border border-(--color-border) bg-(--color-bg-card) hover:shadow-md transition-shadow"
+              >
+                <motion.div
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  whileInView={{ scale: 1, opacity: 0.6 }}
+                  viewport={{ once: true }}
+                  transition={{ ...spring.bouncy, delay: 0.1 }}
+                  className="text-3xl font-bold text-(--color-accent) shrink-0"
+                >{s.num}</motion.div>
+                <div>
+                  <h3 className="font-semibold text-lg mb-1">{s.title}</h3>
+                  <p className="text-sm text-(--color-text-secondary) leading-relaxed">{s.desc}</p>
+                </div>
+              </motion.div>
+            </ScrollSection>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Pricing ─── */
+function Pricing() {
+  const [annual, setAnnual] = useState(true);
+  const plans = [
+    { name: 'Free', price: '$0', desc: 'For exploring the platform', features: ['5 analyses/month', '1 user', 'All 6 ML pipelines', 'CSV export'] },
+    { name: 'Pro', price: annual ? '$29' : '$39', desc: 'For growing teams', popular: true, features: ['Unlimited analyses', '10 users', 'Priority processing', 'API access', 'Custom reports'] },
+    { name: 'Enterprise', price: 'Custom', desc: 'For large organizations', features: ['Everything in Pro', 'Unlimited users', 'SSO / SAML', 'Dedicated support', 'SLA guarantee'] },
+  ];
+
+  return (
+    <section id="pricing" className="py-24 px-6 border-t border-(--color-border)">
+      <div className="max-w-5xl mx-auto">
+        <ScrollSection>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-3">Simple, transparent pricing</h2>
+            <p className="text-(--color-text-secondary) mb-6">Start free. Upgrade when you're ready.</p>
+            <div className="inline-flex items-center gap-2 p-1 rounded-full bg-(--color-bg-card) border border-(--color-border)">
+              <motion.button {...buttonPress} onClick={() => setAnnual(false)} className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all cursor-pointer ${!annual ? 'bg-(--color-accent) text-white' : 'text-(--color-text-secondary)'}`}>Monthly</motion.button>
+              <motion.button {...buttonPress} onClick={() => setAnnual(true)} className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all cursor-pointer ${annual ? 'bg-(--color-accent) text-white' : 'text-(--color-text-secondary)'}`}>Annual <span className="text-xs opacity-70">(-25%)</span></motion.button>
+            </div>
+          </div>
+        </ScrollSection>
+        <div className="grid md:grid-cols-3 gap-4">
+          {plans.map((p, i) => (
+            <ScrollSection key={i}>
+              <motion.div
+                {...cardHover}
+                className={`relative rounded-2xl border p-6 h-full ${p.popular ? 'border-(--color-accent) bg-(--color-bg-card) shadow-md' : 'border-(--color-border) bg-(--color-bg-card)'}`}
+              >
+                {p.popular && (
+                  <motion.div
+                    initial={{ scale: 0, opacity: 0 }}
+                    whileInView={{ scale: 1, opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ ...spring.bouncy, delay: 0.2 }}
+                    className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-(--color-accent) text-white text-xs font-medium"
+                  >Popular</motion.div>
+                )}
+                <h3 className="font-semibold text-lg mb-1">{p.name}</h3>
+                <p className="text-sm text-(--color-text-muted) mb-4">{p.desc}</p>
+                <div className="text-3xl font-bold mb-6">{p.price}<span className="text-sm font-normal text-(--color-text-muted)">{p.price !== 'Custom' ? '/mo' : ''}</span></div>
+                <ul className="space-y-2.5 mb-6">
+                  {p.features.map((f, j) => (
+                    <li key={j} className="flex items-center gap-2 text-sm text-(--color-text-secondary)">
+                      <Check size={14} className="text-(--color-success) shrink-0" /> {f}
+                    </li>
+                  ))}
+                </ul>
+                <motion.div {...buttonPress}>
+                  <Link to="/signup" className={`block text-center py-2.5 rounded-full text-sm font-medium transition-opacity ${p.popular ? 'bg-(--color-accent) text-white hover:opacity-90' : 'border border-(--color-border) text-(--color-text) hover:bg-(--color-bg-hover)'}`}>
+                    {p.price === 'Custom' ? 'Contact Sales' : 'Get Started'}
+                  </Link>
+                </motion.div>
+              </motion.div>
+            </ScrollSection>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── CTA ─── */
+function CTA() {
+  return (
+    <section className="py-24 px-6 border-t border-(--color-border)">
+      <ScrollSection className="max-w-2xl mx-auto text-center">
+        <h2 className="text-3xl font-bold mb-3">Ready to understand your customers?</h2>
+        <p className="text-(--color-text-secondary) mb-8">Upload your first dataset and get results in seconds. No credit card required.</p>
+        <motion.div {...buttonPress}>
+          <Link to="/signup" className="inline-flex items-center gap-2 bg-(--color-accent) text-white font-medium px-8 py-3.5 rounded-full text-sm hover:opacity-90 transition-opacity">
+            Upload Your First Dataset <ArrowRight size={16} />
+          </Link>
+        </motion.div>
+      </ScrollSection>
+    </section>
+  );
+}
+
+/* ─── Footer ─── */
+function Footer() {
+  return (
+    <footer className="border-t border-(--color-border) py-12 px-6">
+      <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-2 text-sm text-(--color-text-muted)">
+          <Activity size={16} className="text-(--color-accent)" />
+          <span>© 2026 AutoML Studio. All rights reserved.</span>
+        </div>
+        <div className="flex gap-6 text-sm text-(--color-text-muted)">
+          <a href="#" className="hover:text-(--color-text) transition-colors">Privacy</a>
+          <a href="#" className="hover:text-(--color-text) transition-colors">Terms</a>
+          <a href="#" className="hover:text-(--color-text) transition-colors">Docs</a>
+        </div>
+      </div>
+    </footer>
+  );
+}

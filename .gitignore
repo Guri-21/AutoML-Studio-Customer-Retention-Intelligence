@@ -6,3 +6,5 @@ __pycache__/
 venv/
 .env
 *.csv
+node_modules/
+backend/uploads/
