@@ -5,6 +5,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { stagger, fadeUp, cardHover, buttonPress, spring } from '../lib/motion';
+import { API_URL } from '../lib/api';
 
 export default function ReportsPage() {
   const [reports, setReports] = useState([]);
@@ -15,7 +16,7 @@ export default function ReportsPage() {
   useEffect(() => {
     const fetchReports = async () => {
       try {
-        const res = await axios.get(`http://${window.location.hostname}:5001/api/analysis`, {
+        const res = await axios.get(`${API_URL}/api/analysis`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setReports(res.data.analyses || []);

@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { ResultsView } from '../components/Workspace';
 import { ArrowLeft } from 'lucide-react';
 import { spring, buttonPress } from '../lib/motion';
+import { API_URL } from '../lib/api';
 
 export default function ReportViewer() {
   const { id } = useParams();
@@ -29,7 +30,7 @@ export default function ReportViewer() {
   useEffect(() => {
     const fetchAnalysis = async () => {
       try {
-        const res = await axios.get(`http://${window.location.hostname}:5001/api/analysis/${id}`, {
+        const res = await axios.get(`${API_URL}/api/analysis/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         // The endpoint returns { analysis: { ... } }

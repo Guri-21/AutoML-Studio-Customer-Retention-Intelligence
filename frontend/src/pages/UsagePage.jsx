@@ -4,8 +4,9 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Activity, Clock } from 'lucide-react';
+import { API_URL } from '../lib/api';
 
-const API = `http://${window.location.hostname}:5001/api/usage`;
+const API = `${API_URL}/api/usage`;
 const fadeUp = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } };
 const stagger = { show: { transition: { staggerChildren: 0.08 } } };
 

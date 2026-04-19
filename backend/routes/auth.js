@@ -2,41 +2,32 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const router = express.Router();
+const User = require('../models/User');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'automl_secret_key_2024';
 
-// ─── In-Memory Stores (works without MongoDB) ───
-const memoryUsers = [];
-const memoryOrgs = [
-  { _id: 'org_default', id: 'org_default', name: 'Default Organization', plan: 'free', createdAt: new Date() }
-];
-
-// Seed an admin user
+// Seed an admin user automatically on first start
 (async () => {
-  const hashed = await bcrypt.hash('admin123', 12);
-  memoryUsers.push({
-    _id: 'admin_001', id: 'admin_001',
-    name: 'Admin', email: 'admin@automl.studio',
-    password: hashed, company: 'AutoML Studio',
-    role: 'admin', orgId: 'org_default', createdAt: new Date()
-  });
+  try {
+    const adminExists = await User.findOne({ email: 'admin@automl.studio' });
+    if (!adminExists) {
+      const user = new User({
+        name: 'Admin',
+        email: 'admin@automl.studio',
+        password: 'admin123', // Will be hashed by pre-save hook
+        company: 'AutoML Studio',
+        role: 'admin',
+        orgId: 'org_default'
+      });
+      await user.save();
+      console.log('✅ Default admin user seeded (admin@automl.studio)');
+    }
+  } catch (err) {
+    if (err.name !== 'MongooseServerSelectionError') {
+      console.warn('⚠️ Could not seed admin user:', err.message);
+    }
+  }
 })();
-
-async function findUser(email) {
-  return memoryUsers.find(u => u.email === email) || null;
-}
-
-async function createUser({ name, email, password, company, role, orgId }) {
-  const hashed = await bcrypt.hash(password, 12);
-  const user = {
-    _id: Date.now().toString(), id: Date.now().toString(),
-    name, email, password: hashed, company: company || '',
-    role: role || 'user', orgId: orgId || 'org_default',
-    createdAt: new Date()
-  };
-  memoryUsers.push(user);
-  return user;
-}
 
 // ─── REGISTER ───
 router.post('/register', async (req, res) => {
@@ -45,19 +36,31 @@ router.post('/register', async (req, res) => {
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'Name, email, and password are required.' });
     }
-    if (await findUser(email)) {
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
       return res.status(400).json({ error: 'An account with this email already exists.' });
     }
 
-    const user = await createUser({ name, email, password, company });
+    const user = new User({
+      name,
+      email,
+      password, // Hashed automatically by Mongoose pre-save hook
+      company: company || '',
+      role: 'user',
+      orgId: 'org_default'
+    });
+    
+    await user.save();
+
     const token = jwt.sign(
-      { id: user.id, email, role: user.role, orgId: user.orgId },
+      { id: user._id, email, role: user.role, orgId: user.orgId },
       JWT_SECRET, { expiresIn: '7d' }
     );
 
     res.status(201).json({
       token,
-      user: { id: user.id, name, email, company, role: user.role, orgId: user.orgId }
+      user: { id: user._id, name, email, company, role: user.role, orgId: user.orgId }
     });
   } catch (err) {
     console.error('Register error:', err);
@@ -73,20 +76,20 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required.' });
     }
 
-    const user = await findUser(email);
+    const user = await User.findOne({ email });
     if (!user) return res.status(401).json({ error: 'Invalid email or password.' });
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await user.comparePassword(password);
     if (!isMatch) return res.status(401).json({ error: 'Invalid email or password.' });
 
     const token = jwt.sign(
-      { id: user.id, email, role: user.role, orgId: user.orgId },
+      { id: user._id, email, role: user.role, orgId: user.orgId },
       JWT_SECRET, { expiresIn: '7d' }
     );
 
     res.json({
       token,
-      user: { id: user.id, name: user.name, email, company: user.company, role: user.role, orgId: user.orgId }
+      user: { id: user._id, name: user.name, email, company: user.company, role: user.role, orgId: user.orgId }
     });
   } catch (err) {
     console.error('Login error:', err);
@@ -95,93 +98,104 @@ router.post('/login', async (req, res) => {
 });
 
 // ─── GET CURRENT USER ───
-router.get('/me', (req, res) => {
+router.get('/me', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: 'No token.' });
     const decoded = jwt.verify(authHeader.split(' ')[1], JWT_SECRET);
-    const user = memoryUsers.find(u => u.id === decoded.id);
+    
+    const user = await User.findById(decoded.id);
     if (!user) return res.status(404).json({ error: 'User not found.' });
-    res.json({ user: { id: user.id, name: user.name, email: user.email, company: user.company, role: user.role, orgId: user.orgId } });
+    
+    res.json({ user: { id: user._id, name: user.name, email: user.email, company: user.company, role: user.role, orgId: user.orgId } });
   } catch (err) {
     res.status(401).json({ error: 'Invalid token.' });
+  }
+});
+
+// ─── DELETE CURRENT USER ───
+router.delete('/me', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: 'No token.' });
+    const decoded = jwt.verify(authHeader.split(' ')[1], JWT_SECRET);
+    
+    await User.findByIdAndDelete(decoded.id);
+    res.json({ message: 'Account deleted successfully.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete account.' });
   }
 });
 
 // ─── ADMIN: List all users ───
-router.get('/admin/users', (req, res) => {
+router.get('/admin/users', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: 'No token.' });
     const decoded = jwt.verify(authHeader.split(' ')[1], JWT_SECRET);
     if (decoded.role !== 'admin') return res.status(403).json({ error: 'Admin access required.' });
 
-    const users = memoryUsers.map(u => ({
-      id: u.id, name: u.name, email: u.email, company: u.company,
+    const users = await User.find().select('-password').sort({ createdAt: -1 });
+    
+    const formattedUsers = users.map(u => ({
+      id: u._id, name: u.name, email: u.email, company: u.company,
       role: u.role, orgId: u.orgId, createdAt: u.createdAt
     }));
-    res.json({ users, total: users.length });
+    
+    res.json({ users: formattedUsers, total: formattedUsers.length });
   } catch (err) {
-    res.status(401).json({ error: 'Invalid token.' });
+    res.status(500).json({ error: 'Failed to fetch users.' });
   }
 });
 
-// ─── ADMIN: List all orgs ───
-router.get('/admin/orgs', (req, res) => {
+// ─── ADMIN: List all orgs (Mocked based on users for now) ───
+router.get('/admin/orgs', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: 'No token.' });
     const decoded = jwt.verify(authHeader.split(' ')[1], JWT_SECRET);
     if (decoded.role !== 'admin') return res.status(403).json({ error: 'Admin access required.' });
 
-    const orgs = memoryOrgs.map(o => ({
-      ...o,
-      memberCount: memoryUsers.filter(u => u.orgId === o.id).length
+    // Aggregate users by orgId
+    const orgStats = await User.aggregate([
+      { $group: { _id: '$orgId', memberCount: { $sum: 1 } } }
+    ]);
+
+    const orgs = orgStats.map(o => ({
+      _id: o._id,
+      id: o._id,
+      name: o._id === 'org_default' ? 'Default Organization' : o._id,
+      plan: 'free',
+      memberCount: o.memberCount,
+      createdAt: new Date()
     }));
+    
     res.json({ orgs });
   } catch (err) {
-    res.status(401).json({ error: 'Invalid token.' });
-  }
-});
-
-// ─── ADMIN: Create org ───
-router.post('/admin/orgs', (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: 'No token.' });
-    const decoded = jwt.verify(authHeader.split(' ')[1], JWT_SECRET);
-    if (decoded.role !== 'admin') return res.status(403).json({ error: 'Admin access required.' });
-
-    const { name, plan } = req.body;
-    const org = { _id: 'org_' + Date.now(), id: 'org_' + Date.now(), name, plan: plan || 'free', createdAt: new Date() };
-    memoryOrgs.push(org);
-    res.status(201).json({ org });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to create organization.' });
+    res.status(500).json({ error: 'Failed to fetch organizations.' });
   }
 });
 
 // ─── ADMIN: Update user role ───
-router.patch('/admin/users/:id', (req, res) => {
+router.patch('/admin/users/:id', async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) return res.status(401).json({ error: 'No token.' });
     const decoded = jwt.verify(authHeader.split(' ')[1], JWT_SECRET);
     if (decoded.role !== 'admin') return res.status(403).json({ error: 'Admin access required.' });
 
-    const user = memoryUsers.find(u => u.id === req.params.id);
+    const updates = {};
+    if (req.body.role) updates.role = req.body.role;
+    if (req.body.orgId) updates.orgId = req.body.orgId;
+
+    const user = await User.findByIdAndUpdate(req.params.id, updates, { new: true });
     if (!user) return res.status(404).json({ error: 'User not found.' });
 
-    if (req.body.role) user.role = req.body.role;
-    if (req.body.orgId) user.orgId = req.body.orgId;
-    res.json({ user: { id: user.id, name: user.name, email: user.email, role: user.role, orgId: user.orgId } });
+    res.json({ user: { id: user._id, name: user.name, email: user.email, role: user.role, orgId: user.orgId } });
   } catch (err) {
     res.status(500).json({ error: 'Failed to update user.' });
   }
 });
 
-// Export stores for usage tracking
-router._memoryUsers = memoryUsers;
-router._memoryOrgs = memoryOrgs;
-
 module.exports = router;
+

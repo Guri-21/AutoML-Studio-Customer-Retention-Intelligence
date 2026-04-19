@@ -5,6 +5,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { stagger, fadeUp, buttonPress, spring } from '../lib/motion';
+import { API_URL } from '../lib/api';
 
 export default function HistoryPage() {
   const [history, setHistory] = useState([]);
@@ -15,7 +16,7 @@ export default function HistoryPage() {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const res = await axios.get(`http://${window.location.hostname}:5001/api/analysis`, {
+        const res = await axios.get(`${API_URL}/api/analysis`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setHistory(res.data.analyses || []);

@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { UploadCloud, CheckCircle, AlertTriangle, Brain, Sparkles, FileText } from 'lucide-react';
 import { spring, buttonPress, cardHover, fadeUp, stagger as staggerFn, appleEase } from '../lib/motion';
+import { API_URL, ML_URL } from '../lib/api';
 import OverviewTab from './OverviewTab';
 import AnomalyTab from './AnomalyTab';
 import ChurnTab from './ChurnTab';
@@ -51,7 +52,7 @@ export default function Workspace() {
     const startTime = Date.now();
 
     try {
-      const res = await axios.post(`http://${window.location.hostname}:8000/api/analyze-csv`, formData, {
+      const res = await axios.post(`${ML_URL}/api/analyze-csv`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setAnalysis(res.data);
@@ -59,7 +60,7 @@ export default function Workspace() {
 
       if (token) {
         // Save Analysis to MongoDB permanently
-        axios.post(`http://${window.location.hostname}:5001/api/analysis`, {
+        axios.post(`${API_URL}/api/analysis`, {
           filename: file.name,
           rowsProcessed: res.data.rows_processed || 0,
           columnsProcessed: res.data.columns_processed || 0,
@@ -67,7 +68,7 @@ export default function Workspace() {
         }, { headers: { Authorization: `Bearer ${token}` } }).catch(err => console.error("Failed to save analysis history:", err));
 
         // Log usage statistics
-        axios.post(`http://${window.location.hostname}:5001/api/usage/log`, {
+        axios.post(`${API_URL}/api/usage/log`, {
           action: 'analysis', filename: file.name,
           rowsProcessed: res.data.rows_processed || 0,
           columnsProcessed: res.data.columns_processed || 0,

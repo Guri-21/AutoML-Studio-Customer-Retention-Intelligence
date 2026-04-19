@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Bot, User, Sparkles, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { spring, buttonPress } from '../lib/motion';
+import { API_URL } from '../lib/api';
 import axios from 'axios';
 
 const STARTER_SUGGESTIONS = [
@@ -46,7 +47,7 @@ export default function AIChatbot({ analysisId }) {
     try {
       const history = messages.map(m => ({ role: m.role, content: m.content }));
       const res = await axios.post(
-        `http://${window.location.hostname}:5001/api/chat`,
+        `${API_URL}/api/chat`,
         { message: text.trim(), analysisId, history },
         { headers: { Authorization: `Bearer ${token}` } }
       );

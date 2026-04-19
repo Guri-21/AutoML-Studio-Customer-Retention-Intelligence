@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { Activity, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import { spring, buttonPress, stagger, fadeUp, pageTransition } from '../lib/motion';
+import { API_URL } from '../lib/api';
 
 export default function AuthPage({ mode }) {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ export default function AuthPage({ mode }) {
   const [error, setError] = useState('');
   const [focusedInput, setFocusedInput] = useState(null);
 
-  const API = `http://${window.location.hostname}:5001/api/auth`;
+  const API = `${API_URL}/api/auth`;
 
   const handleSubmit = async (e) => {
     e.preventDefault();

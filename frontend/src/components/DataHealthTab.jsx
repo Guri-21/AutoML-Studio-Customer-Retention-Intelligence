@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, AlertTriangle, CheckCircle, Download, Loader2, Info, Trash2 } from 'lucide-react';
 import { stagger, fadeUp, spring, buttonPress } from '../lib/motion';
+import { ML_URL } from '../lib/api';
 import axios from 'axios';
 
 function QualityGauge({ score }) {
@@ -54,7 +55,7 @@ export default function DataHealthTab({ data, file }) {
       const formData = new FormData();
       formData.append('file', file);
       const res = await axios.post(
-        `http://${window.location.hostname}:8000/api/fix-csv`,
+        `${ML_URL}/api/fix-csv`,
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' }, responseType: 'blob', timeout: 300000 }
       );

@@ -3,8 +3,9 @@ import axios from 'axios';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { Users, Building2, BarChart3, Shield, Clock } from 'lucide-react';
+import { API_URL } from '../lib/api';
 
-const API = `http://${window.location.hostname}:5001/api`;
+const API = `${API_URL}/api`;
 const fadeUp = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } };
 const stagger = { show: { transition: { staggerChildren: 0.08 } } };
 

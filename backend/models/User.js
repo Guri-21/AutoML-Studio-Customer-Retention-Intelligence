@@ -2,10 +2,18 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
-    name: { type: String, required: true, trim: true },
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    name:     { type: String, required: true, trim: true },
+    email:    { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true, minlength: 6 },
-    company: { type: String, default: '' },
+    company:  { type: String, default: '' },
+    role:     { type: String, enum: ['user', 'admin'], default: 'user' },
+    orgId:    { type: String, default: 'org_default' },
+    // Subscription / plan
+    plan:                  { type: String, enum: ['free', 'pro', 'enterprise'], default: 'free' },
+    monthlyAnalysisCount:  { type: Number, default: 0 },
+    monthlyAnalysisReset:  { type: Date,   default: Date.now },
+    dailyChatCount:        { type: Number, default: 0 },
+    dailyChatReset:        { type: Date,   default: Date.now },
     createdAt: { type: Date, default: Date.now }
 });
 

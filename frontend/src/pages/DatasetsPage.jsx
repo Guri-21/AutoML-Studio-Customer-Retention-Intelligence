@@ -5,6 +5,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { stagger, fadeUp, cardHover, buttonPress, spring } from '../lib/motion';
+import { API_URL } from '../lib/api';
 
 export default function DatasetsPage() {
   const [datasets, setDatasets] = useState([]);
@@ -15,7 +16,7 @@ export default function DatasetsPage() {
   useEffect(() => {
     const fetchDatasets = async () => {
       try {
-        const res = await axios.get(`http://${window.location.hostname}:5001/api/analysis`, {
+        const res = await axios.get(`${API_URL}/api/analysis`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         // The API returns analyses. We'll treat each successfully analyzed file as a dataset.

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, Download, Loader2, CheckCircle, Trash2 } from 'lucide-react';
 import { stagger, fadeUp, spring, buttonPress } from '../lib/motion';
+import { ML_URL } from '../lib/api';
 import axios from 'axios';
 
 export default function AnomalyTab({ data, file }) {
@@ -19,7 +20,7 @@ export default function AnomalyTab({ data, file }) {
       const formData = new FormData();
       formData.append('file', file);
       const res = await axios.post(
-        `http://${window.location.hostname}:8000/api/clean-csv`,
+        `${ML_URL}/api/clean-csv`,
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' }, responseType: 'blob', timeout: 300000 }
       );
