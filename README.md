@@ -1,19 +1,20 @@
-# AutoML Studio v3.0
+# AutoML Studio v4.0
 
-**A Full-Stack Automated Machine Learning Platform for Customer Analytics**
+**A Full-Stack Automated Machine Learning Platform for Customer Analytics & Retention Intelligence**
 
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-Express-339933?logo=nodedotjs&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-FastAPI-009688?logo=fastapi&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-47A248?logo=mongodb&logoColor=white)
 ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v4-06B6D4?logo=tailwindcss&logoColor=white)
+![AI](https://img.shields.io/badge/AI-Gemini_via_OpenRouter-8E75B2?logo=google&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-Production_Ready-success)
 
 ---
 
 ## 🎯 Project Overview
 
-AutoML Studio is a **production-grade, full-stack machine learning platform** that transforms raw CSV data into actionable business intelligence — automatically. Upload any customer, sales, or transactional dataset and receive instant insights from **six parallel ML pipelines** covering anomaly detection, churn prediction, demand forecasting, data profiling, correlation analysis, and distribution modeling.
+AutoML Studio is a **production-grade, full-stack machine learning platform** that transforms raw CSV data into actionable business intelligence — automatically. Upload any customer, sales, or transactional dataset and receive instant insights from **seven parallel ML pipelines** covering anomaly detection, churn prediction, demand forecasting, **product retention analysis with manufacturing recommendations**, data profiling, correlation analysis, and distribution modeling. Includes an **AI-powered chatbot** (Gemini via OpenRouter) that can discuss your analysis results in natural language.
 
 ### Evolution of this Project
 
@@ -23,7 +24,8 @@ This project began as a single-file **Streamlit dashboard** for cohort retention
 |:------|:------------|
 | **v1.0** — Streamlit Dashboard | Single `dashboard.py` file. Static cohort heatmaps and retention metrics. No auth, no persistence. |
 | **v2.0** — Data Pipeline | Added `create_database.py` for data preprocessing, SQL queries, and Jupyter notebooks for exploration. |
-| **v3.0** — AutoML Studio (Current) | Full-stack SaaS rebuild: React frontend, Node.js API, FastAPI ML engine, MongoDB persistence, JWT authentication, admin panel, usage tracking, and a polished landing page. |
+| **v3.0** — AutoML Studio | Full-stack SaaS rebuild: React frontend, Node.js API, FastAPI ML engine, MongoDB persistence, JWT authentication, admin panel, usage tracking, and a polished landing page. |
+| **v4.0** — Retention Intelligence (Current) | Added Product Retention Forecast with manufacturing recommendations, AI Chatbot powered by Gemini via OpenRouter, 7-pipeline analytics engine, and enhanced Forecast tab with sparkline charts and action cards. |
 
 ---
 
@@ -64,9 +66,9 @@ A complete JWT-based authentication system was built from scratch:
 
 ---
 
-### 🧠 3. Six Automated ML Pipelines
+### 🧠 3. Seven Automated ML Pipelines
 
-The Python analytics engine (`analytics_engine/`) runs **six independent ML pipelines** on every uploaded CSV — zero configuration required.
+The Python analytics engine (`analytics_engine/`) runs **seven independent ML pipelines** on every uploaded CSV — zero configuration required.
 
 #### 3a. Data Profiling (`models/profiler.py → run_data_profile`)
 - Column-level statistics: dtype, missing count, missing %, unique count
@@ -102,13 +104,25 @@ The Python analytics engine (`analytics_engine/`) runs **six independent ML pipe
 - **30-day forward projection** with non-negative clamping
 - Returns both historical sample (last 30 days) and forecast data for charting
 
-#### 3e. Correlation Analysis (`models/profiler.py → run_correlation`)
+#### 3e. Product Retention Forecast (`models/forecasting.py → run_product_retention_forecast`) ✨ NEW
+- **Auto-detects** Customer ID, Date, Product Name/Category, Sales, and Quantity columns
+- **Identifies returning customers** — Customers with ≥2 distinct order dates vs one-time buyers
+- **Retention lift scoring** — Computes how much more likely returning customers buy each product compared to one-time buyers (e.g., 6.78x means returners are 6.78× more likely to purchase it)
+- **Per-product demand forecast** — Runs individual 30-day linear trend + moving average forecasts for the top 5 retention-driving products
+- **Manufacturing recommendations** — Generates structured action items per product:
+  - **Increase production** — retention-driving product with growing demand
+  - **Hold / Monitor** — stable or slightly declining demand
+  - **Decrease inventory** — declining demand among returners
+- **Urgency levels** (high/medium/low) based on trend magnitude and retention lift
+- Returns full product stats, historical data, forecast data, and a manufacturing actions summary
+
+#### 3f. Correlation Analysis (`models/profiler.py → run_correlation`)
 - Computes the full Pearson correlation matrix for numeric columns
 - If more than 15 numeric columns exist, selects the top 15 by variance to avoid huge matrices
 - **Top correlating pairs**: Ranks all column pairs by absolute correlation, returns the top 10
 - Returns the full matrix as a 2D array for heatmap rendering
 
-#### 3f. Distribution Analysis (`models/profiler.py → run_distribution`)
+#### 3g. Distribution Analysis (`models/profiler.py → run_distribution`)
 - Selects the top 8 numeric columns by variance
 - Generates 20-bin histograms (`np.histogram`) for each column
 - Returns bin edges, counts, mean, median, and standard deviation per column
@@ -147,7 +161,7 @@ The authenticated dashboard (`/app/*`) is a complete single-page application wit
   - Contextual AI messages that crossfade with blur transitions
   - Horizontal pipeline progress bar with green checkmarks for completed stages and spinning sparkle icon for the active stage
   - Each stage node has a pulsing ring animation when active
-- **Multi-tab results view** with 6 tabs: Overview, Anomalies, Churn, Forecast, Profile, Correlations
+- **Multi-tab results view** with 7 tabs: Overview, Anomalies, Churn, Forecast, Profile, Correlations, Data Health
   - Tab switcher uses a **morphing background indicator** (`layoutId="active-tab"`) for fluid transitions
   - Tab content uses directional slide + fade animations on switch
 
@@ -155,12 +169,13 @@ The authenticated dashboard (`/app/*`) is a complete single-page application wit
 
 | Tab | Component | Visualizations |
 |:----|:----------|:---------------|
-| **Overview** | `OverviewTab.jsx` | KPI metric cards (rows, columns, anomalies, churn risk), Pipeline status table (Complete/Skipped for all 6 pipelines), contextual alert banners for anomalies and churn |
+| **Overview** | `OverviewTab.jsx` | KPI metric cards (rows, columns, anomalies, churn risk), Pipeline status table (Complete/Skipped for all 7 pipelines), contextual alert banners for anomalies and churn |
 | **Anomalies** | `AnomalyTab.jsx` | Anomaly count, anomaly %, severity badges (Critical/High/Medium), animated driver importance bars, scrollable flagged records table with scores |
 | **Churn** | `ChurnTab.jsx` | 4-card KPI grid (total, high/medium/low risk), animated Recharts donut chart with color-coded segments, animated feature importance bars, at-risk customer table with ID/Recency/Frequency/Monetary/Churn% |
-| **Forecast** | `ForecastTab.jsx` | Trend direction indicator (Up/Down/Stable with icon), forecast period card, target column card, Recharts line chart combining historical + forecast data with smooth animation |
+| **Forecast** | `ForecastTab.jsx` | **Two-section layout**: (1) Overall demand forecast with trend chart, (2) **Product Retention Forecast** with returning customer stats, retention-driving products table with sparkline mini-charts, trend badges, expandable per-product forecast charts, manufacturing recommendation cards with urgency indicators, and a Key Insight banner |
 | **Profile** | `ProfileTab.jsx` | Full column-by-column statistics table, data quality score, memory usage, numeric vs. categorical breakdown |
 | **Correlations** | `CorrelationTab.jsx` | Correlation matrix visualization, top correlating pairs list with values |
+| **Data Health** | `DataHealthTab.jsx` | Overall health score, completeness/uniqueness metrics, duplicate detection, issue identification with fix suggestions, auto-fix CSV download |
 
 #### History Page (`/app/history`)
 - **Timeline view** with vertical left-border connector line and accent-colored dots
@@ -226,7 +241,29 @@ A macOS Spotlight-style command palette (`CommandPalette.jsx`):
 
 ---
 
-### 🎨 8. Design System & Theming
+### 🤖 8. AI Data Assistant (Chatbot)
+
+A floating AI chatbot (`AIChatbot.jsx`) powered by **Gemini 2.0 Flash via OpenRouter**:
+
+- **Floating toggle button** — Bottom-right sparkle icon with pulsing ring animation
+- **Chat panel** — 400×560px glassmorphic panel with smooth spring entry/exit
+- **Starter suggestions** — 4 pre-built prompts: "Summarize my analysis results", "What are the key anomaly patterns?", "How can I reduce churn?", "Which columns have data quality issues?"
+- **Context-aware responses** — The chatbot has full access to the current analysis context including:
+  - Data profile, anomaly detection results, churn prediction, forecast summary
+  - **Product retention forecast** — Which products drive repeat customers, retention lifts, manufacturing recommendations
+  - Data health scores, top correlations
+- **Markdown rendering** — Bot responses support bold text, bullet points, and inline code formatting
+- **Loading animation** — Three bouncing dots while waiting for AI response
+- **Error handling** — User-friendly messages for rate limits, timeouts, invalid keys, and safety filters
+- **Backend**: `POST /api/chat` route uses OpenRouter's OpenAI-compatible API with 30-second timeout
+- **Test endpoint**: `GET /api/chat/test` to verify AI configuration without authentication
+- **API key validation** — On server startup, the API key is automatically validated with a test call
+
+**Configuration**: Set `OPENROUTER_API_KEY` in `backend/.env` with your OpenRouter API key.
+
+---
+
+### 🎨 9. Design System & Theming
 
 #### Custom CSS Design Token System (`index.css`)
 A complete design token system using CSS custom properties with separate light and dark palettes:
@@ -266,7 +303,7 @@ Additional presets: `fadeUp`, `scaleIn`, `slideInLeft`, `slideInRight`, `stagger
 
 ---
 
-### 🌐 9. SaaS Landing Page
+### 🌐 10. SaaS Landing Page
 
 A fully built marketing landing page (`LandingPage.jsx`, 440 lines) with:
 
@@ -281,7 +318,7 @@ A fully built marketing landing page (`LandingPage.jsx`, 440 lines) with:
 
 ---
 
-### 🔔 10. Toast Notification System
+### 🔔 11. Toast Notification System
 
 A global notification system (`ToastContext.jsx`):
 
@@ -293,7 +330,7 @@ A global notification system (`ToastContext.jsx`):
 
 ---
 
-### 📁 11. File Upload Pipeline
+### 📁 12. File Upload Pipeline
 
 The file upload flow touches three services:
 
@@ -312,8 +349,9 @@ There is also an alternative upload route through the Express backend (`POST /ap
 | Layer | Technologies | Purpose |
 |:------|:-------------|:--------|
 | **Frontend** | React 19, Vite 8, Tailwind CSS v4, Framer Motion 12, Recharts 3, React Router 7, Axios, Lucide React | UI rendering, charting, animations, routing |
-| **Backend API** | Node.js, Express 5, Mongoose 9, JWT (jsonwebtoken), bcryptjs, Multer, Nodemailer, CORS, dotenv | Auth, data persistence, file handling, email |
-| **Analytics Engine** | Python 3, FastAPI, Pandas, NumPy, Scikit-Learn, Uvicorn, Pydantic | ML model execution, data processing |
+| **Backend API** | Node.js, Express 5, Mongoose 9, JWT (jsonwebtoken), bcryptjs, Multer, Axios, CORS, dotenv | Auth, data persistence, file handling, AI chat proxy |
+| **Analytics Engine** | Python 3, FastAPI, Pandas, NumPy, Scikit-Learn, Uvicorn, Pydantic | ML model execution, data processing (7 pipelines) |
+| **AI / LLM** | Gemini 2.0 Flash via OpenRouter (OpenAI-compatible API) | AI chatbot, context-aware data analysis assistant |
 | **Database** | MongoDB | User accounts, analysis results, metadata |
 | **DevOps** | Shell scripts, `.env` configuration | Service orchestration, environment management |
 
@@ -343,11 +381,12 @@ ecommerce-customer-retention-analysis/
 │   │   │   ├── OverviewTab.jsx         # KPI cards + pipeline status
 │   │   │   ├── AnomalyTab.jsx          # Anomaly drivers + flagged records
 │   │   │   ├── ChurnTab.jsx            # Risk segments + pie chart + table
-│   │   │   ├── ForecastTab.jsx         # Line chart + trend indicator
+│   │   │   ├── ForecastTab.jsx         # Overall forecast + Product Retention Forecast
 │   │   │   ├── ProfileTab.jsx          # Column stats + quality score
 │   │   │   ├── CorrelationTab.jsx      # Correlation matrix + top pairs
-│   │   │   ├── Dashboard.jsx           # Legacy dashboard component
-│   │   │   └── ForecastTab.jsx         # Forecast visualization
+│   │   │   ├── DataHealthTab.jsx       # Data health assessment + auto-fix
+│   │   │   ├── AIChatbot.jsx           # Floating AI chatbot (OpenRouter)
+│   │   │   └── Dashboard.jsx           # Legacy dashboard component
 │   │   ├── context/
 │   │   │   ├── AuthContext.jsx         # JWT auth state + localStorage
 │   │   │   ├── ThemeContext.jsx         # Dark/light mode + system pref
@@ -364,6 +403,7 @@ ecommerce-customer-retention-analysis/
 │   ├── routes/
 │   │   ├── auth.js                     # Register, login, admin user/org CRUD
 │   │   ├── analysis.js                 # Save, list, get, delete analyses
+│   │   ├── chat.js                     # AI chatbot (OpenRouter/Gemini integration)
 │   │   ├── upload.js                   # Multer CSV → FastAPI proxy
 │   │   └── usage.js                    # Usage logging + personal/admin stats
 │   ├── models/
@@ -372,7 +412,7 @@ ecommerce-customer-retention-analysis/
 │   ├── middleware/
 │   │   └── auth.js                     # JWT verification middleware
 │   ├── uploads/                        # Temp file storage + large result JSONs
-│   ├── .env                            # MONGO_URI, JWT_SECRET, etc.
+│   ├── .env                            # MONGO_URI, JWT_SECRET, OPENROUTER_API_KEY
 │   ├── server.js                       # Express app + MongoDB connection
 │   └── package.json
 │
@@ -380,9 +420,10 @@ ecommerce-customer-retention-analysis/
 │   ├── models/
 │   │   ├── anomaly.py                  # Isolation Forest anomaly detection
 │   │   ├── churn.py                    # RFM + Random Forest churn prediction
-│   │   ├── forecasting.py             # Linear trend + MA time-series forecast
+│   │   ├── forecasting.py             # Overall forecast + Product Retention Forecast
+│   │   ├── data_health.py             # Data health assessment + auto-fix
 │   │   └── profiler.py                # Data profiling, correlation, distribution
-│   ├── main.py                         # FastAPI app + /api/analyze-csv endpoint
+│   ├── main.py                         # FastAPI app + 7-pipeline /api/analyze-csv endpoint
 │   └── requirements.txt               # FastAPI, Pandas, Scikit-Learn, etc.
 │
 ├── dashboard.py                        # Legacy Streamlit dashboard (v1.0)
@@ -433,8 +474,9 @@ cd frontend
 npm install
 cd ..
 
-# 5. Configure environment variables (optional)
-# Edit backend/.env to set your own MONGO_URI and JWT_SECRET
+# 5. Configure environment variables
+# Edit backend/.env to set your own MONGO_URI, JWT_SECRET, and OPENROUTER_API_KEY
+# Get an OpenRouter API key from https://openrouter.ai/keys
 
 # 6. Start all services
 chmod +x start_services.sh
@@ -486,11 +528,19 @@ chmod +x start_services.sh
 | `POST` | `/api/usage/log` | Log an analysis event |
 | `GET` | `/api/usage/me` | Personal usage stats + 7-day chart |
 
+### AI Chat
+| Method | Endpoint | Description |
+|:-------|:---------|:------------|
+| `POST` | `/api/chat` | Send message to AI assistant (auth required) |
+| `GET` | `/api/chat/test` | Test AI configuration (no auth) |
+
 ### ML Engine
 | Method | Endpoint | Description |
 |:-------|:---------|:------------|
 | `GET` | `/` | Health check |
-| `POST` | `/api/analyze-csv` | Run full 6-pipeline analysis on CSV |
+| `POST` | `/api/analyze-csv` | Run full 7-pipeline analysis on CSV |
+| `POST` | `/api/clean-csv` | Remove anomalous rows and download cleaned CSV |
+| `POST` | `/api/fix-csv` | Auto-fix data quality issues and download fixed CSV |
 
 ### Admin (Admin role required)
 | Method | Endpoint | Description |
@@ -513,4 +563,4 @@ chmod +x start_services.sh
 
 *This project demonstrates production-grade full-stack engineering — from Python machine learning pipelines and Node.js API design, to React component architecture, physics-based animation systems, and SaaS product design.*
 
-**Technologies**: React • Node.js • Express • FastAPI • Python • MongoDB • Scikit-Learn • TailwindCSS • Framer Motion • Recharts • JWT • Vite
+**Technologies**: React • Node.js • Express • FastAPI • Python • MongoDB • Scikit-Learn • Gemini AI (OpenRouter) • TailwindCSS • Framer Motion • Recharts • JWT • Vite
